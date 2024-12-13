@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["arxiv-tools"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["akitenkrad"]
+description = "Tools for arXiv API."
+repository = "https://github.com/akitenkrad/rs-arxiv-tools.git"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+anyhow = "1.0.94"
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.132"
+tokio = { version = "1.42.0", features = ["full"] }
+
+[workspace.metadata.release]
+tag-prefix = ""
