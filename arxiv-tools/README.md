@@ -1,3 +1,5 @@
+![Crates.io Version](https://img.shields.io/crates/v/arxiv-tools?style=flat-square&color=blue)
+
 # arxiv-tools
 
 Tools for arXiv API.
