@@ -1,6 +1,13 @@
 use super::*;
 
 #[tokio::test]
+async fn test_no_such_a_paper() {
+    let mut arxiv = ArXiv::from_args(ArXivArgs::title("there is no such a paper"));
+    let response = arxiv.query().await;
+    assert_eq!(response.len(), 0);
+}
+
+#[tokio::test]
 async fn test_query_simple() {
     let mut arxiv = ArXiv::from_args(ArXivArgs::title("attention is all you need"));
     let response = arxiv.query().await;
