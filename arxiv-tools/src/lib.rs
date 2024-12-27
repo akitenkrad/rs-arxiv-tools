@@ -11,85 +11,55 @@ fn encode(s: &str) -> String {
         .replace("%20", "+")
 }
 
-pub enum PrimaryCategory {
-    CsAi(String),
-    CsCl(String),
-    CsLg(String),
-    CsGt(String),
-    CsCv(String),
-    CsCr(String),
-    CsCc(String),
-    CsCe(String),
-    CsCy(String),
-    CsDs(String),
-    CsDm(String),
-    CsDc(String),
-    CsEt(String),
-    CsFl(String),
-    CsGl(String),
-    CsGr(String),
-    CsAr(String),
-    CsHc(String),
-    CsIr(String),
+pub enum ArXivCategory {
+    CsAi,
+    CsCl,
+    CsLg,
+    CsGt,
+    CsCv,
+    CsCr,
+    CsCc,
+    CsCe,
+    CsCy,
+    CsDs,
+    CsDm,
+    CsDc,
+    CsEt,
+    CsFl,
+    CsGl,
+    CsGr,
+    CsAr,
+    CsHc,
+    CsIr,
 }
 
-impl PrimaryCategory {
-    pub fn csai() -> Self {
-        PrimaryCategory::CsAi("cs.AI".to_string())
-    }
-    pub fn cscl() -> Self {
-        PrimaryCategory::CsCl("cs.CL".to_string())
-    }
-    pub fn cslg() -> Self {
-        PrimaryCategory::CsLg("cs.LG".to_string())
-    }
-    pub fn csgt() -> Self {
-        PrimaryCategory::CsGt("cs.GT".to_string())
-    }
-    pub fn cscv() -> Self {
-        PrimaryCategory::CsCv("cs.CV".to_string())
-    }
-    pub fn cscr() -> Self {
-        PrimaryCategory::CsCr("cs.CR".to_string())
-    }
-    pub fn cscc() -> Self {
-        PrimaryCategory::CsCc("cs.CC".to_string())
-    }
-    pub fn csce() -> Self {
-        PrimaryCategory::CsCe("cs.CE".to_string())
-    }
-    pub fn cscy() -> Self {
-        PrimaryCategory::CsCy("cs.CY".to_string())
-    }
-    pub fn csds() -> Self {
-        PrimaryCategory::CsDs("cs.DS".to_string())
-    }
-    pub fn csdm() -> Self {
-        PrimaryCategory::CsDm("cs.DM".to_string())
-    }
-    pub fn csdc() -> Self {
-        PrimaryCategory::CsDc("cs.DC".to_string())
-    }
-    pub fn cset() -> Self {
-        PrimaryCategory::CsEt("cs.ET".to_string())
-    }
-    pub fn csfl() -> Self {
-        PrimaryCategory::CsFl("cs.FL".to_string())
-    }
-    pub fn csgr() -> Self {
-        PrimaryCategory::CsGr("cs.GR".to_string())
-    }
-    pub fn csar() -> Self {
-        PrimaryCategory::CsAr("cs.AR".to_string())
-    }
-    pub fn cshc() -> Self {
-        PrimaryCategory::CsHc("cs.HC".to_string())
-    }
-    pub fn csir() -> Self {
-        PrimaryCategory::CsIr("cs.IR".to_string())
+impl ArXivCategory {
+    pub fn to_string(&self) -> String {
+        match self {
+            ArXivCategory::CsAi => String::from("cs.AI"),
+            ArXivCategory::CsCl => String::from("cs.CL"),
+            ArXivCategory::CsLg => String::from("cs.LG"),
+            ArXivCategory::CsGt => String::from("cs.GT"),
+            ArXivCategory::CsCv => String::from("cs.CV"),
+            ArXivCategory::CsCr => String::from("cs.CR"),
+            ArXivCategory::CsCc => String::from("cs.CC"),
+            ArXivCategory::CsCe => String::from("cs.CE"),
+            ArXivCategory::CsCy => String::from("cs.CY"),
+            ArXivCategory::CsDs => String::from("cs.DS"),
+            ArXivCategory::CsDm => String::from("cs.DM"),
+            ArXivCategory::CsDc => String::from("cs.DC"),
+            ArXivCategory::CsEt => String::from("cs.ET"),
+            ArXivCategory::CsFl => String::from("cs.FL"),
+            ArXivCategory::CsGl => String::from("cs.GL"),
+            ArXivCategory::CsGr => String::from("cs.GR"),
+            ArXivCategory::CsAr => String::from("cs.AR"),
+            ArXivCategory::CsHc => String::from("cs.HC"),
+            ArXivCategory::CsIr => String::from("cs.IR"),
+        }
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum ArXivArgs {
     Title(String),
     Author(String),
@@ -98,61 +68,98 @@ pub enum ArXivArgs {
     JournalRef(String),
     SubjectCategory(String),
     ReportNumber(String),
-    SubmittedDate(String),
     Id(String),
     All(String),
     And(String),
     Or(String),
     AndNot(String),
-    GroupStart(String),
-    GroupEnd(String),
+    Group(String),
+}
+
+impl Default for ArXivArgs {
+    fn default() -> Self {
+        return ArXivArgs::title("default");
+    }
 }
 
 impl ArXivArgs {
-    pub fn title(arg: String) -> Self {
+    pub fn title(arg: &str) -> Self {
         return ArXivArgs::Title(encode(&format!("ti:\"{}\"", arg)));
     }
-    pub fn author(arg: String) -> Self {
+    pub fn author(arg: &str) -> Self {
         return ArXivArgs::Author(encode(&format!("au:\"{}\"", arg)));
     }
-    pub fn abstract_text(arg: String) -> Self {
+    pub fn abstract_text(arg: &str) -> Self {
         return ArXivArgs::Abstract(encode(&format!("abs:\"{}\"", arg)));
     }
-    pub fn comment(arg: String) -> Self {
+    pub fn comment(arg: &str) -> Self {
         return ArXivArgs::Comment(encode(&format!("co:\"{}\"", arg)));
     }
-    pub fn journal_ref(arg: String) -> Self {
+    pub fn journal_ref(arg: &str) -> Self {
         return ArXivArgs::JournalRef(encode(&format!("jr:\"{}\"", arg)));
     }
-    pub fn subject_category(arg: String) -> Self {
-        return ArXivArgs::SubjectCategory(encode(&format!("cat:\"{}\"", arg)));
+    pub fn subject_category(arg: ArXivCategory) -> Self {
+        return ArXivArgs::SubjectCategory(encode(&format!("cat:\"{}\"", arg.to_string())));
     }
-    pub fn report_number(arg: String) -> Self {
+    pub fn report_number(arg: &str) -> Self {
         return ArXivArgs::ReportNumber(encode(&format!("rn:\"{}\"", arg)));
     }
-    pub fn id(id: String) -> Self {
+    pub fn id(id: &str) -> Self {
         return ArXivArgs::Id(encode(&format!("id:\"{}\"", id)));
     }
-    pub fn all(arg: String) -> Self {
+    pub fn all(arg: &str) -> Self {
         return ArXivArgs::All(encode(&format!("all:\"{}\"", arg)));
     }
-    pub fn submitted_date(arg_from: String, arg_to: String) -> Self {
-        return ArXivArgs::SubmittedDate(format!("&submittedDate:[{}+TO+{}]", arg_from, arg_to));
+    pub fn to_string(&self) -> String {
+        match self {
+            ArXivArgs::Title(arg) => arg.to_string(),
+            ArXivArgs::Author(arg) => arg.to_string(),
+            ArXivArgs::Abstract(arg) => arg.to_string(),
+            ArXivArgs::Comment(arg) => arg.to_string(),
+            ArXivArgs::JournalRef(arg) => arg.to_string(),
+            ArXivArgs::SubjectCategory(arg) => arg.to_string(),
+            ArXivArgs::ReportNumber(arg) => arg.to_string(),
+            ArXivArgs::Id(arg) => arg.to_string(),
+            ArXivArgs::All(arg) => arg.to_string(),
+            ArXivArgs::And(arg) => arg.to_string(),
+            ArXivArgs::Or(arg) => arg.to_string(),
+            ArXivArgs::AndNot(arg) => arg.to_string(),
+            ArXivArgs::Group(arg) => arg.to_string(),
+        }
     }
-    pub fn and() -> Self {
-        return ArXivArgs::And(encode(" AND "));
+    pub fn and(args: Vec<ArXivArgs>) -> Self {
+        let args = args
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>();
+        let query = args.join(&encode(" AND "));
+        return ArXivArgs::And(query);
     }
-    pub fn or() -> Self {
-        return ArXivArgs::Or(encode(" OR "));
+    pub fn or(args: Vec<ArXivArgs>) -> Self {
+        let args = args
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>();
+        let query = args.join(&encode(" OR "));
+        return ArXivArgs::Or(query);
     }
-    pub fn and_not() -> Self {
-        return ArXivArgs::AndNot(encode(" ANDNOT "));
+    pub fn and_not(args: Vec<ArXivArgs>) -> Self {
+        let args = args
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>();
+        let query = args.join(&encode(" ANDNOT "));
+        return ArXivArgs::Or(query);
     }
-    pub fn group_start() -> Self {
-        return ArXivArgs::GroupStart(encode("("));
-    }
-    pub fn group_end() -> Self {
-        return ArXivArgs::GroupEnd(encode(")"));
+    pub fn group(args: Vec<ArXivArgs>) -> Self {
+        let mut args = args
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>();
+        args.insert(0, encode("("));
+        args.push(encode(")"));
+        let query = args.join("");
+        return ArXivArgs::Group(query);
     }
 }
 
@@ -192,93 +199,30 @@ impl ArXivResponse {
     }
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct ArXiv {
     pub url: String,
     pub base_url: String,
-    pub args: Vec<ArXivArgs>,
+    pub args: ArXivArgs,
+    pub submitted_date: String,
 }
 
 impl ArXiv {
-    pub fn new() -> Self {
+    pub fn from_args(args: ArXivArgs) -> Self {
         return ArXiv {
             base_url: "http://export.arxiv.org/api/query?search_query=".to_string(),
             url: "".to_string(),
-            args: Vec::new(),
+            args: args,
+            submitted_date: "".to_string(),
         };
     }
 
-    pub fn title(&mut self, title: &str) -> &mut Self {
-        self.args.push(ArXivArgs::title(title.to_string()));
-        return self;
-    }
-
-    pub fn author(&mut self, author: &str) -> &mut Self {
-        self.args.push(ArXivArgs::author(author.to_string()));
-        return self;
-    }
-
-    pub fn abstract_text(&mut self, abstract_text: &str) -> &mut Self {
-        self.args
-            .push(ArXivArgs::abstract_text(abstract_text.to_string()));
-        return self;
-    }
-
-    pub fn comment(&mut self, comment: &str) -> &mut Self {
-        self.args.push(ArXivArgs::comment(comment.to_string()));
-        return self;
-    }
-
-    pub fn journal_ref(&mut self, journal_ref: &str) -> &mut Self {
-        self.args
-            .push(ArXivArgs::journal_ref(journal_ref.to_string()));
-        return self;
-    }
-
-    pub fn subject_category(&mut self, category: &str) -> &mut Self {
-        self.args
-            .push(ArXivArgs::subject_category(category.to_string()));
-        return self;
-    }
-
-    pub fn report_number(&mut self, report_number: &str) -> &mut Self {
-        self.args
-            .push(ArXivArgs::report_number(report_number.to_string()));
-        return self;
-    }
-
-    pub fn id(&mut self, id: &str) -> &mut Self {
-        self.args.push(ArXivArgs::id(id.to_string()));
-        return self;
-    }
-
-    pub fn and(&mut self) -> &mut Self {
-        self.args.push(ArXivArgs::and());
-        return self;
-    }
-
-    pub fn or(&mut self) -> &mut Self {
-        self.args.push(ArXivArgs::or());
-        return self;
-    }
-
-    pub fn and_not(&mut self) -> &mut Self {
-        self.args.push(ArXivArgs::and_not());
-        return self;
-    }
-
-    pub fn group_start(&mut self) -> &mut Self {
-        self.args.push(ArXivArgs::group_start());
-        return self;
-    }
-
-    pub fn group_end(&mut self) -> &mut Self {
-        self.args.push(ArXivArgs::group_end());
-        return self;
+    pub fn build_query(&mut self, args: ArXivArgs) {
+        self.args = args;
     }
 
     pub fn submitted_date(&mut self, from: &str, to: &str) -> &mut Self {
-        self.args
-            .push(ArXivArgs::submitted_date(from.to_string(), to.to_string()));
+        self.submitted_date = format!("&submittedDate:[{}+TO+{}]", from, to);
         return self;
     }
 
@@ -487,26 +431,7 @@ impl ArXiv {
     }
 
     pub async fn query(&mut self) -> Vec<ArXivResponse> {
-        let mut query = "".to_string();
-        for arg in &self.args {
-            match arg {
-                ArXivArgs::Title(arg) => query.push_str(&arg),
-                ArXivArgs::Author(arg) => query.push_str(&arg),
-                ArXivArgs::Abstract(arg) => query.push_str(&arg),
-                ArXivArgs::Comment(arg) => query.push_str(&arg),
-                ArXivArgs::JournalRef(arg) => query.push_str(&arg),
-                ArXivArgs::SubjectCategory(arg) => query.push_str(&arg),
-                ArXivArgs::ReportNumber(arg) => query.push_str(&arg),
-                ArXivArgs::SubmittedDate(arg) => query.push_str(&arg),
-                ArXivArgs::Id(arg) => query.push_str(&arg),
-                ArXivArgs::All(arg) => query.push_str(&arg),
-                ArXivArgs::And(arg) => query.push_str(&arg),
-                ArXivArgs::Or(arg) => query.push_str(&arg),
-                ArXivArgs::AndNot(arg) => query.push_str(&arg),
-                ArXivArgs::GroupStart(arg) => query.push_str(&arg),
-                ArXivArgs::GroupEnd(arg) => query.push_str(&arg),
-            }
-        }
+        let query = self.args.to_string();
         self.url = format!(
             "{}{}&sortBy=lastUpdatedDate&sortOrder=descending",
             self.base_url, query,

@@ -43,41 +43,48 @@ use arxiv_tools::ArXiv;
 - query combining multiple conditions
 
     ```rust
+    # use anyhow::Result;
+    # use arxiv_tools::*;
+    # #[tokio]
+    # async fn main () -> Result {
     // build the query
-    let mut arxiv = ArXiv::new();
-    arxiv
-    .subject_category("cs.AI")
-    .or()
-    .subject_category("cs.LG")
-    .submitted_date("202412010000", "202412012359");
+    let args = ArXivArgs::and(vec![
+        ArXivArgs::subject_category(ArXivCategory::CsAi),
+        ArXivArgs::subject_category(ArXivCategory::CsLg),
+    ]);
+    let mut arxiv = ArXiv::from_args(args);
+    arxiv.submitted_date("202412010000", "202412012359");
 
     // execute
     let response = arxiv.query().await;
 
     // serialize into json
     let response = serde_json::to_string_pretty(&response).unwrap();
+    # }
     ```
 
 - complex query using grouped conditions
 
     ```rust
+    # use anyhow::Result;
+    # use arxiv_tools::*;
+    # #[tokio]
+    # async fn main () -> Result {
     // build the query
-    let mut arxiv = ArXiv::new();
-    arxiv
-    .title("ai")
-    .or()
-    .title("llm")
-    .and()
-    .group_start()
-    .subject_category("cs.AI")
-    .or()
-    .subject_category("cs.LG")
-    .group_end()
-    .submitted_date("202412010000", "202412012359");
+    let args = ArXivArgs::and(vec![
+        ArXivArgs::or(vec![ArXivArgs::title("ai"), ArXivArgs::title("llm")]),
+        ArXivArgs::group(vec![ArXivArgs::or(vec![
+            ArXivArgs::subject_category(ArXivCategory::CsAi),
+            ArXivArgs::subject_category(ArXivCategory::CsLg),
+        ])]),
+    ]);
+    let mut arxiv = ArXiv::from_args(args);
+    arxiv.submitted_date("202412010000", "202412012359");
 
     // execute
     let response = arxiv.query().await;
 
     // serialize into json
     let response = serde_json::to_string_pretty(&response).unwrap();
+    }
     ```
