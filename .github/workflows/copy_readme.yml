@@ -1,9 +1,9 @@
-name: Merge Markdown Files
+name: Copy README 
 
 on:
   push:
     paths:
-      - 'path/to/markdown-files/**'
+      - 'arxiv-tools/README.md'
 
 jobs:
   build:
