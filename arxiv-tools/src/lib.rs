@@ -1,3 +1,53 @@
+//! # Description
+//! This library provides a simple interface to query the arXiv API.
+//!
+//! # Example
+//! ## Simple Query
+//! ```rust
+//! # use arxiv_tools::{ArXiv, QueryParams, Paper};
+//! # #[tokio::main]
+//! # async fn main() {
+//! // get arxiv object from query parameters
+//! let mut arxiv = ArXiv::from_args(QueryParams::title("attention is all you need"));
+//!
+//! // execute
+//! let response: Vec<Paper> = arxiv.query().await;
+//!
+//! //verify
+//! let paper = response.first().unwrap();
+//! assert!(paper.title.to_lowercase().contains("attention is all you need"));
+//! # }
+//! ```
+//!
+//! ## Complex Query
+//! ```rust
+//! # use arxiv_tools::{ArXiv, QueryParams, Category, SortBy, SortOrder};
+//! # #[tokio::main]
+//! # async fn main() {
+//! // build query parameters
+//! let args = QueryParams::and(vec![
+//!     QueryParams::or(vec![QueryParams::title("ai"), QueryParams::title("llm")]),
+//!     QueryParams::group(vec![QueryParams::or(vec![
+//!         QueryParams::subject_category(Category::CsAi),
+//!         QueryParams::subject_category(Category::CsLg),
+//!     ])]),
+//! ]);
+//! let mut arxiv = ArXiv::from_args(args);
+//!
+//! // set additional parameters
+//! arxiv.submitted_date("202412010000", "202412012359");
+//! arxiv.start(10);
+//! arxiv.max_results(100);
+//! arxiv.sort_by(SortBy::SubmittedDate);
+//! arxiv.sort_order(SortOrder::Ascending);
+//!
+//! // execute
+//! let response = arxiv.query().await;
+//!
+//! // verify
+//! assert!(response.len() > 1);
+//! # }
+//! ```
 use percent_encoding::utf8_percent_encode;
 use percent_encoding::NON_ALPHANUMERIC as NON_ALNUM;
 use quick_xml::events::Event;
@@ -11,7 +61,7 @@ fn encode(s: &str) -> String {
         .replace("%20", "+")
 }
 
-pub enum ArXivCategory {
+pub enum Category {
     CsAi,
     CsCl,
     CsLg,
@@ -33,34 +83,34 @@ pub enum ArXivCategory {
     CsIr,
 }
 
-impl ArXivCategory {
+impl Category {
     pub fn to_string(&self) -> String {
         match self {
-            ArXivCategory::CsAi => String::from("cs.AI"),
-            ArXivCategory::CsCl => String::from("cs.CL"),
-            ArXivCategory::CsLg => String::from("cs.LG"),
-            ArXivCategory::CsGt => String::from("cs.GT"),
-            ArXivCategory::CsCv => String::from("cs.CV"),
-            ArXivCategory::CsCr => String::from("cs.CR"),
-            ArXivCategory::CsCc => String::from("cs.CC"),
-            ArXivCategory::CsCe => String::from("cs.CE"),
-            ArXivCategory::CsCy => String::from("cs.CY"),
-            ArXivCategory::CsDs => String::from("cs.DS"),
-            ArXivCategory::CsDm => String::from("cs.DM"),
-            ArXivCategory::CsDc => String::from("cs.DC"),
-            ArXivCategory::CsEt => String::from("cs.ET"),
-            ArXivCategory::CsFl => String::from("cs.FL"),
-            ArXivCategory::CsGl => String::from("cs.GL"),
-            ArXivCategory::CsGr => String::from("cs.GR"),
-            ArXivCategory::CsAr => String::from("cs.AR"),
-            ArXivCategory::CsHc => String::from("cs.HC"),
-            ArXivCategory::CsIr => String::from("cs.IR"),
+            Category::CsAi => String::from("cs.AI"),
+            Category::CsCl => String::from("cs.CL"),
+            Category::CsLg => String::from("cs.LG"),
+            Category::CsGt => String::from("cs.GT"),
+            Category::CsCv => String::from("cs.CV"),
+            Category::CsCr => String::from("cs.CR"),
+            Category::CsCc => String::from("cs.CC"),
+            Category::CsCe => String::from("cs.CE"),
+            Category::CsCy => String::from("cs.CY"),
+            Category::CsDs => String::from("cs.DS"),
+            Category::CsDm => String::from("cs.DM"),
+            Category::CsDc => String::from("cs.DC"),
+            Category::CsEt => String::from("cs.ET"),
+            Category::CsFl => String::from("cs.FL"),
+            Category::CsGl => String::from("cs.GL"),
+            Category::CsGr => String::from("cs.GR"),
+            Category::CsAr => String::from("cs.AR"),
+            Category::CsHc => String::from("cs.HC"),
+            Category::CsIr => String::from("cs.IR"),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum ArXivArgs {
+pub enum QueryParams {
     Title(String),
     Author(String),
     Abstract(String),
@@ -76,82 +126,116 @@ pub enum ArXivArgs {
     Group(String),
 }
 
-impl Default for ArXivArgs {
+impl Default for QueryParams {
     fn default() -> Self {
-        return ArXivArgs::title("default");
+        return QueryParams::title("default");
     }
 }
 
-impl ArXivArgs {
+#[derive(Clone, Debug, Default)]
+pub enum SortBy {
+    #[default]
+    Relevance,
+    LastUpdatedDate,
+    SubmittedDate,
+}
+
+impl SortBy {
+    pub fn to_string(&self) -> String {
+        match self {
+            SortBy::Relevance => String::from("relevance"),
+            SortBy::LastUpdatedDate => String::from("lastUpdatedDate"),
+            SortBy::SubmittedDate => String::from("submittedDate"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub enum SortOrder {
+    #[default]
+    Ascending,
+    Descending,
+}
+
+impl SortOrder {
+    pub fn to_string(&self) -> String {
+        match self {
+            SortOrder::Ascending => String::from("ascending"),
+            SortOrder::Descending => String::from("descending"),
+        }
+    }
+}
+
+impl QueryParams {
     pub fn title(arg: &str) -> Self {
-        return ArXivArgs::Title(encode(&format!("ti:\"{}\"", arg)));
+        return QueryParams::Title(encode(&format!("ti:\"{}\"", arg)));
     }
     pub fn author(arg: &str) -> Self {
-        return ArXivArgs::Author(encode(&format!("au:\"{}\"", arg)));
+        return QueryParams::Author(encode(&format!("au:\"{}\"", arg)));
     }
     pub fn abstract_text(arg: &str) -> Self {
-        return ArXivArgs::Abstract(encode(&format!("abs:\"{}\"", arg)));
+        return QueryParams::Abstract(encode(&format!("abs:\"{}\"", arg)));
     }
     pub fn comment(arg: &str) -> Self {
-        return ArXivArgs::Comment(encode(&format!("co:\"{}\"", arg)));
+        return QueryParams::Comment(encode(&format!("co:\"{}\"", arg)));
     }
     pub fn journal_ref(arg: &str) -> Self {
-        return ArXivArgs::JournalRef(encode(&format!("jr:\"{}\"", arg)));
+        return QueryParams::JournalRef(encode(&format!("jr:\"{}\"", arg)));
     }
-    pub fn subject_category(arg: ArXivCategory) -> Self {
-        return ArXivArgs::SubjectCategory(encode(&format!("cat:\"{}\"", arg.to_string())));
+    pub fn subject_category(arg: Category) -> Self {
+        return QueryParams::SubjectCategory(encode(&format!("cat:\"{}\"", arg.to_string())));
     }
     pub fn report_number(arg: &str) -> Self {
-        return ArXivArgs::ReportNumber(encode(&format!("rn:\"{}\"", arg)));
+        return QueryParams::ReportNumber(encode(&format!("rn:\"{}\"", arg)));
     }
     pub fn id(id: &str) -> Self {
-        return ArXivArgs::Id(encode(&format!("id:\"{}\"", id)));
+        return QueryParams::Id(encode(&format!("id:\"{}\"", id)));
     }
     pub fn all(arg: &str) -> Self {
-        return ArXivArgs::All(encode(&format!("all:\"{}\"", arg)));
+        return QueryParams::All(encode(&format!("all:\"{}\"", arg)));
     }
     pub fn to_string(&self) -> String {
         match self {
-            ArXivArgs::Title(arg) => arg.to_string(),
-            ArXivArgs::Author(arg) => arg.to_string(),
-            ArXivArgs::Abstract(arg) => arg.to_string(),
-            ArXivArgs::Comment(arg) => arg.to_string(),
-            ArXivArgs::JournalRef(arg) => arg.to_string(),
-            ArXivArgs::SubjectCategory(arg) => arg.to_string(),
-            ArXivArgs::ReportNumber(arg) => arg.to_string(),
-            ArXivArgs::Id(arg) => arg.to_string(),
-            ArXivArgs::All(arg) => arg.to_string(),
-            ArXivArgs::And(arg) => arg.to_string(),
-            ArXivArgs::Or(arg) => arg.to_string(),
-            ArXivArgs::AndNot(arg) => arg.to_string(),
-            ArXivArgs::Group(arg) => arg.to_string(),
+            QueryParams::Title(arg) => arg.to_string(),
+            QueryParams::Author(arg) => arg.to_string(),
+            QueryParams::Abstract(arg) => arg.to_string(),
+            QueryParams::Comment(arg) => arg.to_string(),
+            QueryParams::JournalRef(arg) => arg.to_string(),
+            QueryParams::SubjectCategory(arg) => arg.to_string(),
+            QueryParams::ReportNumber(arg) => arg.to_string(),
+            QueryParams::Id(arg) => arg.to_string(),
+            QueryParams::All(arg) => arg.to_string(),
+            QueryParams::And(arg) => arg.to_string(),
+            QueryParams::Or(arg) => arg.to_string(),
+            QueryParams::AndNot(arg) => arg.to_string(),
+            QueryParams::Group(arg) => arg.to_string(),
         }
     }
-    pub fn and(args: Vec<ArXivArgs>) -> Self {
+    pub fn and(args: Vec<QueryParams>) -> Self {
         let args = args
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
         let query = args.join(&encode(" AND "));
-        return ArXivArgs::And(query);
+        return QueryParams::And(query);
     }
-    pub fn or(args: Vec<ArXivArgs>) -> Self {
+    pub fn or(args: Vec<QueryParams>) -> Self {
         let args = args
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
         let query = args.join(&encode(" OR "));
-        return ArXivArgs::Or(query);
+        return QueryParams::Or(query);
     }
-    pub fn and_not(args: Vec<ArXivArgs>) -> Self {
+    pub fn and_not(args: Vec<QueryParams>) -> Self {
         let args = args
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
         let query = args.join(&encode(" ANDNOT "));
-        return ArXivArgs::Or(query);
+        return QueryParams::Or(query);
     }
-    pub fn group(args: Vec<ArXivArgs>) -> Self {
+    pub fn group(args: Vec<QueryParams>) -> Self {
         let mut args = args
             .iter()
             .map(|arg| arg.to_string())
@@ -159,12 +243,12 @@ impl ArXivArgs {
         args.insert(0, encode("("));
         args.push(encode(")"));
         let query = args.join("");
-        return ArXivArgs::Group(query);
+        return QueryParams::Group(query);
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArXivResponse {
+pub struct Paper {
     pub id: String,
     pub title: String,
     pub authors: Vec<String>,
@@ -180,9 +264,9 @@ pub struct ArXivResponse {
     pub categories: Vec<String>,
 }
 
-impl ArXivResponse {
+impl Paper {
     pub fn default() -> Self {
-        return ArXivResponse {
+        return Paper {
             id: "".to_string(),
             title: "".to_string(),
             authors: Vec::new(),
@@ -201,32 +285,48 @@ impl ArXivResponse {
 
 #[derive(Clone, Debug, Default)]
 pub struct ArXiv {
-    pub url: String,
-    pub base_url: String,
-    pub args: ArXivArgs,
-    pub submitted_date: String,
+    pub args: QueryParams,
+    pub submitted_date: Option<String>,
+    pub start: Option<u64>,
+    pub max_resutls: Option<u64>,
+    pub sort_by: Option<SortBy>,
+    pub sort_order: Option<SortOrder>,
 }
 
 impl ArXiv {
-    pub fn from_args(args: ArXivArgs) -> Self {
+    pub fn from_args(args: QueryParams) -> Self {
         return ArXiv {
-            base_url: "http://export.arxiv.org/api/query?search_query=".to_string(),
-            url: "".to_string(),
             args: args,
-            submitted_date: "".to_string(),
+            submitted_date: None,
+            max_resutls: None,
+            start: None,
+            sort_by: None,
+            sort_order: None,
         };
     }
 
-    pub fn build_query(&mut self, args: ArXivArgs) {
-        self.args = args;
-    }
-
     pub fn submitted_date(&mut self, from: &str, to: &str) -> &mut Self {
-        self.submitted_date = format!("&submittedDate:[{}+TO+{}]", from, to);
+        self.submitted_date = Some(format!("&submittedDate:[{}+TO+{}]", from, to));
+        return self;
+    }
+    pub fn start(&mut self, start: u64) -> &mut Self {
+        self.start = Some(start);
+        return self;
+    }
+    pub fn max_results(&mut self, max_results: u64) -> &mut Self {
+        self.max_resutls = Some(max_results);
+        return self;
+    }
+    pub fn sort_by(&mut self, sort_by: SortBy) -> &mut Self {
+        self.sort_by = Some(sort_by);
+        return self;
+    }
+    pub fn sort_order(&mut self, sort_order: SortOrder) -> &mut Self {
+        self.sort_order = Some(sort_order);
         return self;
     }
 
-    fn parse_xml(&self, xml: String) -> Vec<ArXivResponse> {
+    fn parse_xml(&self, xml: String) -> Vec<Paper> {
         let mut reader = Reader::from_str(&xml);
         let mut buf = Vec::new();
         let mut in_entry = false;
@@ -240,14 +340,14 @@ impl ArXiv {
         let mut in_comment = false;
         let mut in_journal_ref = false;
 
-        let mut responses: Vec<ArXivResponse> = Vec::new();
-        let mut res = ArXivResponse::default();
+        let mut responses: Vec<Paper> = Vec::new();
+        let mut res = Paper::default();
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(ref e)) => {
                     if e.name().as_ref() == b"entry" {
                         in_entry = true;
-                        res = ArXivResponse::default();
+                        res = Paper::default();
                     } else if e.name().as_ref() == b"id" {
                         in_id = true;
                     } else if e.name().as_ref() == b"title" {
@@ -328,7 +428,7 @@ impl ArXiv {
                     if e.name().as_ref() == b"entry" {
                         in_entry = false;
                         responses.push(res.clone());
-                        res = ArXivResponse::default();
+                        res = Paper::default();
                     } else if e.name().as_ref() == b"id" {
                         in_id = false;
                     } else if e.name().as_ref() == b"title" {
@@ -430,15 +530,32 @@ impl ArXiv {
         return responses;
     }
 
-    pub async fn query(&mut self) -> Vec<ArXivResponse> {
-        let query = self.args.to_string();
-        self.url = format!(
-            "{}{}&sortBy=lastUpdatedDate&sortOrder=descending",
-            self.base_url, query,
-        );
-        self.url = self.url.replace("%20", "+");
+    fn build_query(&self) -> String {
+        let mut query = self.args.to_string();
+        query = query.replace("%20", "+");
+        if let Some(submitted_date) = &self.submitted_date {
+            query.push_str(submitted_date);
+        }
+        if let Some(start) = &self.start {
+            query.push_str(&format!("&start={}", start));
+        }
+        if let Some(max_resutls) = &self.max_resutls {
+            query.push_str(&format!("&max_results={}", max_resutls));
+        }
+        if let Some(sort_by) = &self.sort_by {
+            query.push_str(&format!("&sortBy={}", sort_by.to_string()));
+        }
+        if let Some(sort_order) = &self.sort_order {
+            query.push_str(&format!("&sortOrder={}", sort_order.to_string()));
+        }
 
-        let body = request::get(&self.url).await.unwrap().text().await.unwrap();
+        return format!("http://export.arxiv.org/api/query?search_query={}", query);
+    }
+
+    pub async fn query(&mut self) -> Vec<Paper> {
+        let url = self.build_query();
+        println!("{}", url);
+        let body = request::get(&url).await.unwrap().text().await.unwrap();
         let responses = self.parse_xml(body);
         return responses;
     }
