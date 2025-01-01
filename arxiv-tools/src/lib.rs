@@ -554,7 +554,6 @@ impl ArXiv {
 
     pub async fn query(&mut self) -> Vec<Paper> {
         let url = self.build_query();
-        println!("{}", url);
         let body = request::get(&url).await.unwrap().text().await.unwrap();
         let responses = self.parse_xml(body);
         return responses;
