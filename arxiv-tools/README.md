@@ -26,7 +26,14 @@ use arxiv_tools::ArXiv;
 
 See the [Documents](https://docs.rs/arxiv-tools/latest/arxiv_tools/index.html).
 
-# Updates
+# Release Notes
+
+<details open>
+<summary>1.1.2</summary>
+
+- Fixed a bug: fixed the query parameter `submittedDate`.
+
+</details>
 
 <details>
 <summary>1.1.0</summary>

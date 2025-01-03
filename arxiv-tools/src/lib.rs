@@ -31,11 +31,11 @@
 //!         QueryParams::subject_category(Category::CsAi),
 //!         QueryParams::subject_category(Category::CsLg),
 //!     ])]),
+//!     QueryParams::SubmittedDate(String::from("202412010000"), String::from("202412012359")),
 //! ]);
 //! let mut arxiv = ArXiv::from_args(args);
 //!
 //! // set additional parameters
-//! arxiv.submitted_date("202412010000", "202412012359");
 //! arxiv.start(10);
 //! arxiv.max_results(100);
 //! arxiv.sort_by(SortBy::SubmittedDate);
@@ -45,21 +45,15 @@
 //! let response = arxiv.query().await;
 //!
 //! // verify
-//! assert!(response.len() > 1);
+//! assert!(response.len() > 0);
 //! # }
 //! ```
-use percent_encoding::utf8_percent_encode;
-use percent_encoding::NON_ALPHANUMERIC as NON_ALNUM;
+use chrono::{DateTime, Utc};
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use reqwest as request;
 use serde::{Deserialize, Serialize};
-
-fn encode(s: &str) -> String {
-    utf8_percent_encode(s, NON_ALNUM)
-        .to_string()
-        .replace("%20", "+")
-}
+use urlencoding::encode;
 
 pub enum Category {
     CsAi,
@@ -124,6 +118,7 @@ pub enum QueryParams {
     Or(String),
     AndNot(String),
     Group(String),
+    SubmittedDate(String, String),
 }
 
 impl Default for QueryParams {
@@ -168,31 +163,31 @@ impl SortOrder {
 
 impl QueryParams {
     pub fn title(arg: &str) -> Self {
-        return QueryParams::Title(encode(&format!("ti:\"{}\"", arg)));
+        return QueryParams::Title(format!("ti:\"{}\"", encode(arg)));
     }
     pub fn author(arg: &str) -> Self {
-        return QueryParams::Author(encode(&format!("au:\"{}\"", arg)));
+        return QueryParams::Author(format!("au:\"{}\"", encode(arg)));
     }
     pub fn abstract_text(arg: &str) -> Self {
-        return QueryParams::Abstract(encode(&format!("abs:\"{}\"", arg)));
+        return QueryParams::Abstract(format!("abs:\"{}\"", encode(arg)));
     }
     pub fn comment(arg: &str) -> Self {
-        return QueryParams::Comment(encode(&format!("co:\"{}\"", arg)));
+        return QueryParams::Comment(format!("co:\"{}\"", encode(arg)));
     }
     pub fn journal_ref(arg: &str) -> Self {
-        return QueryParams::JournalRef(encode(&format!("jr:\"{}\"", arg)));
+        return QueryParams::JournalRef(format!("jr:\"{}\"", encode(arg)));
     }
     pub fn subject_category(arg: Category) -> Self {
-        return QueryParams::SubjectCategory(encode(&format!("cat:\"{}\"", arg.to_string())));
+        return QueryParams::SubjectCategory(format!("cat:\"{}\"", encode(&arg.to_string())));
     }
     pub fn report_number(arg: &str) -> Self {
-        return QueryParams::ReportNumber(encode(&format!("rn:\"{}\"", arg)));
+        return QueryParams::ReportNumber(format!("rn:\"{}\"", encode(arg)));
     }
     pub fn id(id: &str) -> Self {
-        return QueryParams::Id(encode(&format!("id:\"{}\"", id)));
+        return QueryParams::Id(format!("id:\"{}\"", encode(id)));
     }
     pub fn all(arg: &str) -> Self {
-        return QueryParams::All(encode(&format!("all:\"{}\"", arg)));
+        return QueryParams::All(format!("all:\"{}\"", encode(arg)));
     }
     pub fn to_string(&self) -> String {
         match self {
@@ -209,6 +204,9 @@ impl QueryParams {
             QueryParams::Or(arg) => arg.to_string(),
             QueryParams::AndNot(arg) => arg.to_string(),
             QueryParams::Group(arg) => arg.to_string(),
+            QueryParams::SubmittedDate(from, to) => {
+                format!("submittedDate:[{}+TO+{}]", from, to)
+            }
         }
     }
     pub fn and(args: Vec<QueryParams>) -> Self {
@@ -216,7 +214,7 @@ impl QueryParams {
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
-        let query = args.join(&encode(" AND "));
+        let query = args.join("+AND+");
         return QueryParams::And(query);
     }
     pub fn or(args: Vec<QueryParams>) -> Self {
@@ -224,7 +222,7 @@ impl QueryParams {
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
-        let query = args.join(&encode(" OR "));
+        let query = args.join("+OR+");
         return QueryParams::Or(query);
     }
     pub fn and_not(args: Vec<QueryParams>) -> Self {
@@ -232,7 +230,7 @@ impl QueryParams {
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
-        let query = args.join(&encode(" ANDNOT "));
+        let query = args.join("+ANDNOT+");
         return QueryParams::Or(query);
     }
     pub fn group(args: Vec<QueryParams>) -> Self {
@@ -240,8 +238,8 @@ impl QueryParams {
             .iter()
             .map(|arg| arg.to_string())
             .collect::<Vec<String>>();
-        args.insert(0, encode("("));
-        args.push(encode(")"));
+        args.insert(0, String::from("%28"));
+        args.push(String::from("%29"));
         let query = args.join("");
         return QueryParams::Group(query);
     }
@@ -281,12 +279,23 @@ impl Paper {
             categories: Vec::new(),
         };
     }
+
+    pub fn published2utc(&self) -> DateTime<Utc> {
+        return DateTime::parse_from_rfc3339(&self.published)
+            .unwrap()
+            .with_timezone(&Utc);
+    }
+
+    pub fn updated2utc(&self) -> DateTime<Utc> {
+        return DateTime::parse_from_rfc3339(&self.updated)
+            .unwrap()
+            .with_timezone(&Utc);
+    }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ArXiv {
     pub args: QueryParams,
-    pub submitted_date: Option<String>,
     pub start: Option<u64>,
     pub max_resutls: Option<u64>,
     pub sort_by: Option<SortBy>,
@@ -297,7 +306,6 @@ impl ArXiv {
     pub fn from_args(args: QueryParams) -> Self {
         return ArXiv {
             args: args,
-            submitted_date: None,
             max_resutls: None,
             start: None,
             sort_by: None,
@@ -305,10 +313,6 @@ impl ArXiv {
         };
     }
 
-    pub fn submitted_date(&mut self, from: &str, to: &str) -> &mut Self {
-        self.submitted_date = Some(format!("&submittedDate:[{}+TO+{}]", from, to));
-        return self;
-    }
     pub fn start(&mut self, start: u64) -> &mut Self {
         self.start = Some(start);
         return self;
@@ -533,9 +537,6 @@ impl ArXiv {
     fn build_query(&self) -> String {
         let mut query = self.args.to_string();
         query = query.replace("%20", "+");
-        if let Some(submitted_date) = &self.submitted_date {
-            query.push_str(submitted_date);
-        }
         if let Some(start) = &self.start {
             query.push_str(&format!("&start={}", start));
         }

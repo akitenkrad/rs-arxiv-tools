@@ -25,3 +25,20 @@ use arxiv_tools::ArXiv;
 ### Usage
 
 See the [Documents](https://docs.rs/arxiv-tools/latest/arxiv_tools/index.html).
+
+# Release Notes
+
+<details open>
+<summary>1.1.2</summary>
+
+- Fixed a bug: fixed the query parameter `submittedDate`.
+
+</details>
+
+<details>
+<summary>1.1.0</summary>
+
+- Added optional parameters such as `start`, `max_results`, `sortBy`, `sortOrder`.
+- Updated documents.
+
+</details>
