@@ -19,6 +19,22 @@
 //! # }
 //! ```
 //!
+//! ## Query by arXiv ID
+//! ```rust
+//! # use arxiv_tools::{ArXiv, Paper};
+//! # #[tokio::main]
+//! # async fn main() {
+//! // fetch specific papers by their arXiv IDs
+//! let mut arxiv = ArXiv::from_id_list(vec!["1706.03762", "1810.04805"]);
+//!
+//! // execute
+//! let response: Vec<Paper> = arxiv.query().await;
+//!
+//! // verify
+//! assert_eq!(response.len(), 2);
+//! # }
+//! ```
+//!
 //! ## Complex Query
 //! ```rust
 //! # use arxiv_tools::{ArXiv, QueryParams, Category, SortBy, SortOrder};
@@ -300,6 +316,7 @@ pub struct ArXiv {
     pub max_resutls: Option<u64>,
     pub sort_by: Option<SortBy>,
     pub sort_order: Option<SortOrder>,
+    pub id_list: Option<Vec<String>>,
 }
 
 impl ArXiv {
@@ -310,6 +327,29 @@ impl ArXiv {
             start: None,
             sort_by: None,
             sort_order: None,
+            id_list: None,
+        };
+    }
+
+    /// Create an ArXiv query to fetch papers by their arXiv IDs.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use arxiv_tools::ArXiv;
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let mut arxiv = ArXiv::from_id_list(vec!["1706.03762", "1810.04805"]);
+    /// let papers = arxiv.query().await;
+    /// # }
+    /// ```
+    pub fn from_id_list(ids: Vec<&str>) -> Self {
+        return ArXiv {
+            args: QueryParams::default(),
+            max_resutls: None,
+            start: None,
+            sort_by: None,
+            sort_order: None,
+            id_list: Some(ids.iter().map(|s| s.to_string()).collect()),
         };
     }
 
@@ -327,6 +367,13 @@ impl ArXiv {
     }
     pub fn sort_order(&mut self, sort_order: SortOrder) -> &mut Self {
         self.sort_order = Some(sort_order);
+        return self;
+    }
+    /// Set the list of arXiv IDs to query.
+    ///
+    /// This can be combined with search_query to filter results.
+    pub fn id_list(&mut self, ids: Vec<&str>) -> &mut Self {
+        self.id_list = Some(ids.iter().map(|s| s.to_string()).collect());
         return self;
     }
 
@@ -535,22 +582,39 @@ impl ArXiv {
     }
 
     fn build_query(&self) -> String {
-        let mut query = self.args.to_string();
-        query = query.replace("%20", "+");
-        if let Some(start) = &self.start {
-            query.push_str(&format!("&start={}", start));
-        }
-        if let Some(max_resutls) = &self.max_resutls {
-            query.push_str(&format!("&max_results={}", max_resutls));
-        }
-        if let Some(sort_by) = &self.sort_by {
-            query.push_str(&format!("&sortBy={}", sort_by.to_string()));
-        }
-        if let Some(sort_order) = &self.sort_order {
-            query.push_str(&format!("&sortOrder={}", sort_order.to_string()));
+        let mut params: Vec<String> = Vec::new();
+
+        // Add search_query if id_list is not the only parameter
+        if self.id_list.is_none() {
+            let mut search_query = self.args.to_string();
+            search_query = search_query.replace("%20", "+");
+            params.push(format!("search_query={}", search_query));
+        } else if let Some(ref id_list) = self.id_list {
+            // When id_list is provided, check if args is not default
+            let default_query = QueryParams::default().to_string();
+            let current_query = self.args.to_string();
+            if current_query != default_query {
+                let mut search_query = current_query;
+                search_query = search_query.replace("%20", "+");
+                params.push(format!("search_query={}", search_query));
+            }
+            params.push(format!("id_list={}", id_list.join(",")));
         }
 
-        return format!("http://export.arxiv.org/api/query?search_query={}", query);
+        if let Some(start) = &self.start {
+            params.push(format!("start={}", start));
+        }
+        if let Some(max_resutls) = &self.max_resutls {
+            params.push(format!("max_results={}", max_resutls));
+        }
+        if let Some(sort_by) = &self.sort_by {
+            params.push(format!("sortBy={}", sort_by.to_string()));
+        }
+        if let Some(sort_order) = &self.sort_order {
+            params.push(format!("sortOrder={}", sort_order.to_string()));
+        }
+
+        return format!("https://export.arxiv.org/api/query?{}", params.join("&"));
     }
 
     pub async fn query(&mut self) -> Vec<Paper> {

@@ -9,9 +9,9 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-chrono = "0.4.39"
-quick-xml = "0.37.1"
-reqwest = "0.12.9"
+chrono = "0.4.42"
+quick-xml = "0.37.5"
+reqwest = "0.12.28"
 scraper = "0.22.0"
 serde.workspace = true
 serde_json.workspace = true
