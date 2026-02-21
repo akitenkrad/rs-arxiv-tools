@@ -4,7 +4,7 @@ use super::*;
 async fn test_no_such_a_paper() {
     let mut arxiv =
         ArXiv::from_args(QueryParams::title("xyzzy123qwertyuiop456asdfghjkl789zxcvbnm"));
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert_eq!(response.len(), 0);
 }
 
@@ -13,7 +13,7 @@ async fn test_query_by_author() {
     let mut arxiv = ArXiv::from_args(QueryParams::author("Yoshua Bengio"));
     arxiv.max_results(5);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     let has_author = response.iter().any(|paper| {
@@ -30,7 +30,7 @@ async fn test_query_by_abstract() {
     let mut arxiv = ArXiv::from_args(QueryParams::abstract_text("deep learning"));
     arxiv.max_results(5);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 }
 
@@ -39,7 +39,7 @@ async fn test_query_by_id_list_single() {
     // Query a specific paper by arXiv ID using id_list
     let mut arxiv = ArXiv::from_id_list(vec!["1706.03762"]);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     let paper = response.first().unwrap();
@@ -57,7 +57,7 @@ async fn test_query_by_id_list_multiple() {
     // 1810.04805: "BERT"
     let mut arxiv = ArXiv::from_id_list(vec!["1706.03762", "1810.04805"]);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert_eq!(response.len(), 2);
 
     let ids: Vec<&str> = response.iter().map(|p| p.id.as_str()).collect();
@@ -71,7 +71,7 @@ async fn test_query_by_id_list_method() {
     let mut arxiv = ArXiv::from_args(QueryParams::default());
     arxiv.id_list(vec!["1706.03762"]);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     let paper = response.first().unwrap();
@@ -83,7 +83,7 @@ async fn test_query_by_all() {
     let mut arxiv = ArXiv::from_args(QueryParams::all("transformer"));
     arxiv.max_results(5);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 }
 
@@ -96,7 +96,7 @@ async fn test_query_and_not() {
     let mut arxiv = ArXiv::from_args(args);
     arxiv.max_results(5);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 }
 
@@ -107,7 +107,7 @@ async fn test_query_simple() {
     let url = arxiv.build_query();
     println!("{}", url);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     let response = serde_json::to_string_pretty(&response).unwrap();
@@ -128,7 +128,7 @@ async fn test_query_normal() {
     let url = arxiv.build_query();
     println!("{}", url);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     response.iter().for_each(|paper| {
@@ -162,7 +162,7 @@ async fn test_query_complex() {
     let url = arxiv.build_query();
     println!("{}", url);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     println!("{:?}", response);
     assert!(response.len() > 0);
 
@@ -175,7 +175,7 @@ async fn test_paper_updated2utc() {
     // Use id_list to get a specific paper
     let mut arxiv = ArXiv::from_id_list(vec!["1706.03762"]);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     let paper = response.first().unwrap();
@@ -194,7 +194,7 @@ async fn test_sort_by_last_updated_date() {
     arxiv.sort_by(SortBy::LastUpdatedDate);
     arxiv.sort_order(SortOrder::Descending);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     // Verify results are sorted by last updated date (descending)
@@ -211,7 +211,7 @@ async fn test_sort_by_relevance() {
     arxiv.max_results(5);
     arxiv.sort_by(SortBy::Relevance);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 }
 
@@ -223,7 +223,7 @@ async fn test_sort_order_descending() {
     arxiv.sort_by(SortBy::SubmittedDate);
     arxiv.sort_order(SortOrder::Descending);
 
-    let response = arxiv.query().await;
+    let response = arxiv.query().await.unwrap();
     assert!(response.len() > 0);
 
     // Verify results are sorted by submitted date (descending)

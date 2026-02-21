@@ -6,16 +6,17 @@
 //! ```rust
 //! # use arxiv_tools::{ArXiv, QueryParams, Paper};
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main() -> anyhow::Result<()> {
 //! // get arxiv object from query parameters
 //! let mut arxiv = ArXiv::from_args(QueryParams::title("attention is all you need"));
 //!
 //! // execute
-//! let response: Vec<Paper> = arxiv.query().await;
+//! let response: Vec<Paper> = arxiv.query().await?;
 //!
 //! //verify
 //! let paper = response.first().unwrap();
 //! assert!(paper.title.to_lowercase().contains("attention is all you need"));
+//! # Ok(())
 //! # }
 //! ```
 //!
@@ -23,15 +24,16 @@
 //! ```rust
 //! # use arxiv_tools::{ArXiv, Paper};
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main() -> anyhow::Result<()> {
 //! // fetch specific papers by their arXiv IDs
 //! let mut arxiv = ArXiv::from_id_list(vec!["1706.03762", "1810.04805"]);
 //!
 //! // execute
-//! let response: Vec<Paper> = arxiv.query().await;
+//! let response: Vec<Paper> = arxiv.query().await?;
 //!
 //! // verify
 //! assert_eq!(response.len(), 2);
+//! # Ok(())
 //! # }
 //! ```
 //!
@@ -39,7 +41,7 @@
 //! ```rust
 //! # use arxiv_tools::{ArXiv, QueryParams, Category, SortBy, SortOrder};
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main() -> anyhow::Result<()> {
 //! // build query parameters
 //! let args = QueryParams::and(vec![
 //!     QueryParams::or(vec![QueryParams::title("ai"), QueryParams::title("llm")]),
@@ -58,10 +60,11 @@
 //! arxiv.sort_order(SortOrder::Ascending);
 //!
 //! // execute
-//! let response = arxiv.query().await;
+//! let response = arxiv.query().await?;
 //!
 //! // verify
 //! assert!(response.len() > 0);
+//! # Ok(())
 //! # }
 //! ```
 use chrono::{DateTime, Utc};
@@ -337,9 +340,10 @@ impl ArXiv {
     /// ```rust
     /// # use arxiv_tools::ArXiv;
     /// # #[tokio::main]
-    /// # async fn main() {
+    /// # async fn main() -> anyhow::Result<()> {
     /// let mut arxiv = ArXiv::from_id_list(vec!["1706.03762", "1810.04805"]);
-    /// let papers = arxiv.query().await;
+    /// let papers = arxiv.query().await?;
+    /// # Ok(())
     /// # }
     /// ```
     pub fn from_id_list(ids: Vec<&str>) -> Self {
@@ -377,7 +381,7 @@ impl ArXiv {
         return self;
     }
 
-    fn parse_xml(&self, xml: String) -> Vec<Paper> {
+    fn parse_xml(&self, xml: String) -> anyhow::Result<Vec<Paper>> {
         let mut reader = Reader::from_str(&xml);
         let mut buf = Vec::new();
         let mut in_entry = false;
@@ -573,12 +577,12 @@ impl ArXiv {
                     }
                 }
                 Ok(Event::Eof) => break,
-                Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                Err(e) => anyhow::bail!("XML parse error at position {}: {:?}", reader.buffer_position(), e),
                 _ => (),
             }
             buf.clear();
         }
-        return responses;
+        return Ok(responses);
     }
 
     fn build_query(&self) -> String {
@@ -617,11 +621,11 @@ impl ArXiv {
         return format!("https://export.arxiv.org/api/query?{}", params.join("&"));
     }
 
-    pub async fn query(&mut self) -> Vec<Paper> {
+    pub async fn query(&mut self) -> anyhow::Result<Vec<Paper>> {
         let url = self.build_query();
-        let body = request::get(&url).await.unwrap().text().await.unwrap();
-        let responses = self.parse_xml(body);
-        return responses;
+        let body = request::get(&url).await?.text().await?;
+        let responses = self.parse_xml(body)?;
+        return Ok(responses);
     }
 }
 
