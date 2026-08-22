@@ -8,55 +8,114 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build the library
 cargo build
 
-# Run all tests (requires network - tests query the arXiv API)
+# Offline tests only — fast, no network. Prefer this while iterating.
+cargo test --lib
+
+# Doc tests (network examples are `no_run`, so these only compile)
+cargo test --doc
+
+# Live tests against export.arxiv.org. Slow by design: the client spaces
+# requests three seconds apart, so this takes ~40s.
+cargo test --test live_api
+
+# Everything
 cargo test
 
 # Run a single test
-cargo test test_query_simple
+cargo test --lib journal_ref_is_captured
 
-# Run tests with output
-cargo test -- --nocapture
+# Lint and format — CI fails on either
+cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --all -- --check
 
-# Check without building
-cargo check
-
-# Publish to crates.io (after updating version in Cargo.toml)
+# Publish to crates.io (after bumping the workspace version and CHANGELOG.md)
 cargo publish -p arxiv-tools
 ```
 
 ## Architecture
 
-This is a Rust library (`arxiv-tools`) that provides an async interface to the arXiv API. The crate is published to crates.io.
+A Rust library (`arxiv-tools`, published to crates.io) wrapping the arXiv
+Atom API.
 
 ### Project Structure
-- **Workspace root**: Contains `Cargo.toml` defining the workspace with a single member
-- **arxiv-tools/**: The actual library crate
-  - `src/lib.rs`: All library code (query builder, XML parser, data types)
-  - `src/tests.rs`: Integration tests that hit the live arXiv API
 
-### Core Components (lib.rs)
+- **Workspace root**: `Cargo.toml` holds the shared version, metadata and
+  dependency versions; `arxiv-tools` is the only member.
+- **arxiv-tools/src/**
+  - `lib.rs` — crate docs and re-exports only; no logic.
+  - `arxiv.rs` — `ArXiv`, the query builder, and `ArXiv::url()` which renders
+    the request URL.
+  - `query.rs` — `QueryParams` (a `search_query` expression tree), `SortBy`,
+    `SortOrder`.
+  - `category.rs` — `Category`, the full 155-entry arXiv taxonomy. **Generated
+    from <https://arxiv.org/category_taxonomy>**; regenerate rather than
+    hand-editing when arXiv adds a category.
+  - `paper.rs` — `Paper`, `Page`, and `parse_feed()`, the Atom parser.
+  - `client.rs` — `Client`, the HTTP layer: rate limiting, retries, timeouts.
+  - `error.rs` — `Error` (a `thiserror` enum) and the crate's `Result` alias.
+- **arxiv-tools/tests/**
+  - `fixtures/*.xml` — recorded arXiv responses, used by the offline unit
+    tests in `src/`.
+  - `live_api.rs` — integration tests against the real API.
 
-**Query Building:**
-- `QueryParams` enum: Represents different arXiv search fields (title, author, abstract, category, etc.)
-- `QueryParams::and()`, `or()`, `and_not()`, `group()`: Compose complex boolean queries
-- `Category` enum: Typed arXiv categories (CsAi, CsLg, CsCl, etc.)
+### Invariants worth knowing
 
-**API Client:**
-- `ArXiv` struct: Main client with builder pattern for setting `start`, `max_results`, `sort_by`, `sort_order`, `id_list`
-- `ArXiv::from_args(QueryParams)`: Create client with search query
-- `ArXiv::from_id_list(Vec<&str>)`: Create client to fetch papers by arXiv IDs
-- `query()` async method: Executes the HTTP request and parses response
-- `parse_xml()`: Internal XML parser using `quick-xml` crate
-
-**Data Types:**
-- `Paper` struct: Represents a parsed arXiv paper with all metadata (id, title, authors, abstract, dates, DOI, categories, etc.)
-- `SortBy`, `SortOrder` enums: Query result ordering options
+- **Encoding happens exactly once**, in `ArXiv::url()`, via
+  `Url::query_pairs_mut()`. `QueryParams` stores raw phrases and `Display`
+  renders an unencoded arXiv expression. Do not percent-encode in
+  `QueryParams`; 1.x did, then rewrote `%20` back to `+`, and it was a
+  recurring source of bugs.
+- **The Atom parser must accumulate text, not assign it.** quick-xml reports
+  entity references as separate `GeneralRef` events, so a title containing
+  `&amp;` arrives in three pieces. Assigning drops everything after the
+  entity.
+- **Every parser state flag must reset per `<entry>`.** A flag that leaks
+  across entries silently corrupts every later paper — that was the
+  `journal_ref` bug in 1.x.
+- **arXiv reports rejected queries as a 400 carrying an Atom feed** whose
+  single entry has an id under `arxiv.org/api/errors#`. `parse_feed` turns
+  that into `Error::Api`; the client checks the body even on non-2xx.
+- **Rate limiting is not optional.** The arXiv Terms of Use require one
+  request per three seconds. `Client` enforces it across clones via a shared
+  slot reservation.
 
 ### Key Dependencies
-- `reqwest`: Async HTTP client
-- `quick-xml`: XML parsing for arXiv Atom feed responses
-- `chrono`: Date handling for paper timestamps
-- `tokio`: Async runtime (tests use `#[tokio::test]`)
 
-### Note on Tests
-Tests make real HTTP requests to the arXiv API - they require network access and may be slow or occasionally fail due to rate limiting or API availability.
+- `reqwest` (rustls) — async HTTP
+- `quick-xml` — namespace-resolving Atom parser
+- `chrono` — timestamps
+- `thiserror` — the error enum
+- `tokio` — **only** the `time` feature, for the rate limiter's sleep. Keep it
+  that way; the `full` feature was removed in 2.0.
+
+### Documentation layout
+
+Public docs follow the standard repo layout: a minimal top-level `README.md`
+(hero image, language switcher, overview, install, quick start, links into
+`docs/`, license) with all detail in `docs/`. Every page exists twice —
+`<name>.md` (English, canonical) and `<name>.ja.md` — each with a language
+switcher on the first line, and the Japanese pages use `．`/`，`.
+
+- `README.md` and `arxiv-tools/README.md` are byte-identical, which CI checks.
+  That is why they use **absolute** `https://` URLs for the hero image and the
+  `docs/` links: `arxiv-tools/README.md` is what crates.io renders, where a
+  relative path would not resolve. `README.ja.md` is GitHub-only and uses
+  relative links.
+- Do **not** add a "generated by Claude Code" footer to any `.md` here; these
+  files ship to crates.io.
+- Every Rust block in every README and docs page is compiled by CI via
+  `scripts/extract_doc_examples.py`. Run it locally before changing an
+  example:
+
+  ```bash
+  python3 scripts/extract_doc_examples.py /tmp/doc-examples
+  cargo build --manifest-path /tmp/doc-examples/Cargo.toml
+  ```
+
+### Testing policy
+
+Parsing and URL building are covered offline with recorded fixtures. Add a
+regression test there for every bug fixed — the 1.x bugs went unnoticed for
+months precisely because all 20 tests required network access and only
+asserted `len() > 0`. Reserve `live_api.rs` for checks that the request shape
+is one arXiv still accepts.
