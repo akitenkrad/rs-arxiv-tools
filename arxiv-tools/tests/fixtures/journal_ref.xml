@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/9uXqofs/mJDrFWMFHXCC5sY0e48</id>
+  <title>arXiv Query: search_query=&amp;id_list=0704.0001,1810.04805&amp;start=0&amp;max_results=10</title>
+  <updated>2026-08-21T13:31:14Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=0704.0001,1810.04805" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
+  <opensearch:totalResults>2</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/0704.0001v2</id>
+    <title>Calculation of prompt diphoton production cross sections at Tevatron and LHC energies</title>
+    <updated>2007-07-24T20:10:27Z</updated>
+    <link href="https://arxiv.org/abs/0704.0001v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/0704.0001v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>  A fully differential calculation in perturbative quantum chromodynamics is presented for the production of massive photon pairs at hadron colliders. All next-to-leading order perturbative contributions from quark-antiquark, gluon-(anti)quark, and gluon-gluon subprocesses are included, as well as all-orders resummation of initial-state gluon radiation valid at next-to-next-to-leading logarithmic accuracy. The region of phase space is specified in which the calculation is most reliable. Good agreement is demonstrated with data from the Fermilab Tevatron, and predictions are made for more detailed tests with CDF and DO data. Predictions are shown for distributions of diphoton pairs produced at the energy of the Large Hadron Collider (LHC). Distributions of the diphoton pairs from the decay of a Higgs boson are contrasted with those produced from QCD processes at the LHC, showing that enhanced sensitivity to the signal can be obtained with judicious selection of events.</summary>
+    <category term="hep-ph" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2007-04-02T19:18:42Z</published>
+    <arxiv:comment>37 pages, 15 figures; published version</arxiv:comment>
+    <arxiv:primary_category term="hep-ph"/>
+    <arxiv:journal_ref>Phys.Rev.D76:013009,2007</arxiv:journal_ref>
+    <author>
+      <name>C. Balázs</name>
+    </author>
+    <author>
+      <name>E. L. Berger</name>
+    </author>
+    <author>
+      <name>P. M. Nadolsky</name>
+    </author>
+    <author>
+      <name>C. -P. Yuan</name>
+    </author>
+    <arxiv:doi>10.1103/PhysRevD.76.013009</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1103/PhysRevD.76.013009" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1810.04805v2</id>
+    <title>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding</title>
+    <updated>2019-05-24T20:37:26Z</updated>
+    <link href="https://arxiv.org/abs/1810.04805v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1810.04805v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications.
+  BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5% (7.7% point absolute improvement), MultiNLI accuracy to 86.7% (4.6% absolute improvement), SQuAD v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and SQuAD v2.0 Test F1 to 83.1 (5.1 point absolute improvement).</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2018-10-11T00:50:01Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Jacob Devlin</name>
+    </author>
+    <author>
+      <name>Ming-Wei Chang</name>
+    </author>
+    <author>
+      <name>Kenton Lee</name>
+    </author>
+    <author>
+      <name>Kristina Toutanova</name>
+    </author>
+  </entry>
+</feed>

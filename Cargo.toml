@@ -1,20 +1,44 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["arxiv-tools"]
 
 [workspace.package]
-version = "1.2.0"
-edition = "2021"
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.85"
 authors = ["akitenkrad"]
-description = "Tools for arXiv API."
+description = "An async client for the arXiv API: typed queries, the full category taxonomy, paging, and PDF downloads."
 repository = "https://github.com/akitenkrad/rs-arxiv-tools.git"
+homepage = "https://github.com/akitenkrad/rs-arxiv-tools"
+documentation = "https://docs.rs/arxiv-tools"
 license = "Apache-2.0"
+keywords = ["arxiv", "api", "paper", "research", "async"]
+categories = ["api-bindings", "science", "asynchronous"]
 
 [workspace.dependencies]
-anyhow = "1.0.100"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.148"
-tokio = { version = "1.49.0", features = ["full"] }
+chrono = "0.4.45"
+quick-xml = "0.41.0"
+reqwest = { version = "0.13.4", default-features = false, features = [
+    "rustls",
+    "charset",
+    "http2",
+    "system-proxy",
+] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.20"
+# Only `time` (the rate limiter's sleep) plus `fs`/`io-util` (streaming a
+# downloaded PDF to disk). reqwest already pulls tokio in, so this adds no
+# crates to the dependency graph.
+tokio = { version = "1.53.1", default-features = false, features = [
+    "time",
+    "fs",
+    "io-util",
+    "sync",
+] }
+
+# Dev-only.
+anyhow = "1.0.104"
+serde_json = "1.0.151"
 
 [workspace.metadata.release]
 tag-prefix = ""

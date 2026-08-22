@@ -2,21 +2,34 @@
 name = "arxiv-tools"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 description.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
 
 [dependencies]
-anyhow.workspace = true
-chrono = "0.4.42"
-quick-xml = "0.37.5"
-reqwest = "0.12.28"
-scraper = "0.22.0"
+chrono.workspace = true
+quick-xml.workspace = true
+reqwest.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
-urlencoding = "2.1.3"
+
+[dev-dependencies]
+anyhow.workspace = true
+serde_json.workspace = true
+# The test harness needs a runtime; the library itself only uses `tokio::time`.
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }
 
 [package.metadata.release]
 tag = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
